@@ -4,32 +4,62 @@ json('zorium-paper/colors.json')
 
 .z-game-over
   text-align: center
-  padding: 10px
+  padding: 40px 20px 120px
+  min-height: 100vh
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  gap: 8px
+  background: #f8fbff
+  color: #0f172a
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif
 
   > .current-score
-    zp-font-display4()
-    margin-top: 20px
+    zp-font-display3()
+    margin-top: 0
+    letter-spacing: -0.02em
+    font-family: inherit
 
   > .current-label
-    zp-font-headline()
-    color: $black54
-    font-style: italic
+    zp-font-subhead()
+    color: rgba(15, 23, 42, 0.6)
+    text-transform: uppercase
+    letter-spacing: 0.28em
+    font-family: inherit
 
   > .divider
-    height: 1px
-    background $grey300
-    margin: 25px 0
+    height: 2px
+    width: min(320px, 70vw)
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0), rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0))
+    margin: 18px 0
 
   > .best-score
-    zp-font-display2()
+    zp-font-display1()
+    letter-spacing: -0.01em
+    font-family: inherit
 
   > .best-label
     zp-font-subhead()
-    color: $black54
-    font-style: italic
+    color: rgba(15, 23, 42, 0.6)
+    text-transform: uppercase
+    letter-spacing: 0.24em
+    font-family: inherit
 
   > .buttons
     position: absolute
     width: 100%
     left: 0
-    bottom: 20px
+    bottom: 30px
+    display: flex
+    justify-content: center
+    gap: 16px
+
+  .zp-button
+    border-radius: 999px
+    background: rgba(255, 255, 255, 0.95)
+    color: #0f172a
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14)
+
+  .zp-button .zp-button__content
+    letter-spacing: 0.02em

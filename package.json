@@ -1,5 +1,5 @@
 {
-  "name": "zop",
+  "name": "eduzop",
   "private": true,
   "scripts": {
     "dev": "webpack serve --mode development",
@@ -8,10 +8,11 @@
   },
   "devDependencies": {
     "coffee-loader": "^5.0.0",
-    "coffeescript": "^2.7.0",
+    "coffeescript": "npm:coffee-script@1.12.7",
     "copy-webpack-plugin": "^12.0.2",
     "css-loader": "^7.1.2",
     "html-webpack-plugin": "^5.6.0",
+    "nib": "^1.2.0",
     "normalize.styl": "^3.0.0",
     "process": "^0.11.10",
     "style-loader": "^4.0.0",
@@ -26,7 +27,6 @@
     "promiz": "^1.0.0",
     "lodash": "^4.17.21",
     "whatwg-fetch": "^3.6.20",
-    "zock": "^0.0.11",
     "zorium": "^0.7.0",
     "zorium-paper": "^0.7.6"
   }

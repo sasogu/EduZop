@@ -1,7 +1,6 @@
 var Game, styles, z;
 
 z = require('zorium');
-paperColors = require('zorium-paper/colors.json')
 
 Score = require('../../models/score')
 Footer = require('../footer')
@@ -44,18 +43,42 @@ module.exports = Game = (function() {
     ctx = c
     W = a.width
     H = a.height
-    dotSize = Math.min(W, H) / 7
+    gridCount = 6
+    dotSize = Math.min(W, H) / 6.6
     xs = W / 2 - dotSize * 3 + dotSize / 2
     ys = H / 2 - dotSize * 3 + dotSize / 2
 
     if (W > H) {
-      dotSize *= 0.6
+      dotSize *= 0.68
       xs = W / 2 - dotSize * 3 + dotSize / 2
       ys = H / 2 - dotSize * 3
     }
+    tileSize = dotSize * 0.72
+    tileRadius = tileSize * 0.24
+    tileGlowSize = tileSize * 1.08
+    noteSize = tileSize * 0.72
 
     choice = function(arr) {
       return arr[Math.floor(Math.random()*arr.length)]
+    }
+
+    drawRoundedRect = function (x, y, w, h, r) {
+      var rr = Math.min(r, w / 2, h / 2)
+      ctx.beginPath()
+      ctx.moveTo(x + rr, y)
+      ctx.arcTo(x + w, y, x + w, y + h, rr)
+      ctx.arcTo(x + w, y + h, x, y + h, rr)
+      ctx.arcTo(x, y + h, x, y, rr)
+      ctx.arcTo(x, y, x + w, y, rr)
+      ctx.closePath()
+    }
+
+    drawTile = function (x, y, size, color, alpha) {
+      ctx.globalAlpha = alpha
+      ctx.fillStyle = color
+      drawRoundedRect(x, y, size, size, tileRadius)
+      ctx.fill()
+      ctx.globalAlpha = 1
     }
 
     colors = ['#F44336', '#9C27B0', '#2196F3', '#4CAF50', '#FF9800']
@@ -74,8 +97,8 @@ module.exports = Game = (function() {
     }, {})
 
     dots = []
-    for (var x = 0; x < 6; x++) {
-      for (var y = 0; y < 6; y++) {
+    for (var x = 0; x < gridCount; x++) {
+      for (var y = 0; y < gridCount; y++) {
         color = choice(colors)
         dots.push({
           color: color,
@@ -100,10 +123,10 @@ module.exports = Game = (function() {
       time = 60
       lastPhysicsTime = 0
 
-      for (var x = 0; x < 6; x++) {
-        for (var y = 0; y < 6; y++) {
+      for (var x = 0; x < gridCount; x++) {
+        for (var y = 0; y < gridCount; y++) {
           color = choice(colors)
-          dots[x + y * 6] = {
+          dots[x + y * gridCount] = {
             color: color,
             ty: ys + y * dotSize,
             x: xs + x * dotSize,
@@ -152,27 +175,31 @@ module.exports = Game = (function() {
       }
       ctx.clearRect(0, 0, W, H)
 
+      ctx.fillStyle = '#f8fbff'
+      ctx.fillRect(0, 0, W, H)
+
       if (squareColor) {
-        ctx.globalAlpha = 0.1
+        ctx.globalAlpha = 0.08
         ctx.fillStyle = squareColor
         ctx.fillRect(0, 0, W, H)
         ctx.globalAlpha = 1
       }
 
-      ctx.font = dotSize / 2 + 'px Roboto'
+      ctx.font = '600 ' + dotSize / 2 + 'px "Space Grotesk"'
       function fillText(s, x, y) {
         ctx.fillText(s, x|0, y|0)
       }
-      ctx.fillStyle = paperColors.$black54
-      fillText(score, xs + dotSize * 2.5, ys - dotSize)
-      fillText(time, xs + dotSize, ys - dotSize)
-      fillText(Score.getBest(), xs + dotSize * 4, ys - dotSize)
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'
+      fillText(score, xs + dotSize * 2.5, ys - dotSize * 0.95)
+      fillText(time, xs + dotSize, ys - dotSize * 0.95)
+      fillText(Score.getBest(), xs + dotSize * 4, ys - dotSize * 0.95)
 
       ctx.textAlign = 'center'
-      ctx.font = 'italic ' + dotSize / 5 + 'px Roboto'
-      fillText('SCORE', xs + dotSize * 2.5, ys - dotSize + dotSize / 3)
-      fillText('TIME', xs + dotSize, ys - dotSize + dotSize / 3)
-      fillText('BEST', xs + dotSize * 4, ys - dotSize + dotSize / 3)
+      ctx.font = '500 ' + dotSize / 5 + 'px "Space Grotesk"'
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.5)'
+      fillText('SCORE', xs + dotSize * 2.5, ys - dotSize + dotSize / 3.2)
+      fillText('TIME', xs + dotSize, ys - dotSize + dotSize / 3.2)
+      fillText('BEST', xs + dotSize * 4, ys - dotSize + dotSize / 3.2)
 
 
       for (var i = dots.length - 1; i >= 0 ; i--) {
@@ -185,7 +212,7 @@ module.exports = Game = (function() {
             break
           }
         }
-        if (!hasBelow && a.r != 5) {
+        if (!hasBelow && a.r != gridCount - 1) {
           a.r += 1
           a.ty = ys + a.r * dotSize
         }
@@ -225,16 +252,28 @@ module.exports = Game = (function() {
       for (var i = 0; i < dots.length; i++) {
         dot = dots[i]
         if (contains(selected, dot) || dot.color == squareColor) {
-          ctx.fillStyle = dot.color
-          ctx.globalAlpha = 0.5
-          ctx.fillRect(Math.floor(dot.x - dotSize / 3), Math.floor(dot.y - dotSize / 3), Math.floor(dotSize / 1.5), Math.floor(dotSize / 1.5))
-          ctx.globalAlpha = 1
+          var glowX = Math.floor(dot.x - tileGlowSize / 2)
+          var glowY = Math.floor(dot.y - tileGlowSize / 2)
+          ctx.shadowColor = 'rgba(0, 0, 0, 0)'
+          drawTile(glowX, glowY, tileGlowSize, dot.color, 0.25)
         }
+        var tileX = Math.floor(dot.x - tileSize / 2)
+        var tileY = Math.floor(dot.y - tileSize / 2)
+        ctx.shadowColor = 'rgba(15, 23, 42, 0.25)'
+        ctx.shadowBlur = tileSize * 0.18
+        ctx.shadowOffsetY = tileSize * 0.08
         ctx.fillStyle = dot.color
-        ctx.fillRect(Math.floor(dot.x - dotSize / 4), Math.floor(dot.y - dotSize / 4), Math.floor(dotSize / 2), Math.floor(dotSize / 2))
+        drawRoundedRect(tileX, tileY, tileSize, tileSize, tileRadius)
+        ctx.fill()
+        ctx.shadowColor = 'rgba(0, 0, 0, 0)'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetY = 0
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+        ctx.lineWidth = 1
+        ctx.stroke()
         var noteImg = noteImages[dot.color]
         if (noteImg && noteImg.complete) {
-          var size = dotSize * 0.5
+          var size = noteSize
           ctx.drawImage(
             noteImg,
             Math.floor(dot.x - size / 2),
@@ -248,7 +287,7 @@ module.exports = Game = (function() {
       if (selected.length && isSelecting) {
         ctx.strokeStyle = selected[0].color
         ctx.lineJoin = 'round'
-        ctx.lineWidth = dotSize / 6
+        ctx.lineWidth = dotSize / 7
         ctx.beginPath()
         ctx.moveTo(mouseX, mouseY)
         for (var i = 0; i < selected.length; i++) {
