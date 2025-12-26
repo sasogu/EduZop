@@ -1,23 +1,18 @@
 z = require 'zorium'
 Button = require 'zorium-paper/button'
-Icon = require 'zorium-paper/icon'
 
 Score = require '../../models/score'
 
-styles = require './index.styl'
+require './index.styl'
 
 module.exports = class GameOver
   constructor: ->
-    styles.use()
-
     @state = z.state
       $shareBtn: new Button()
-      $shareIcon: new Icon()
       $againBtn: new Button()
-      $playIcon: new Icon()
 
   render: =>
-    {$shareBtn, $againBtn, $shareIcon, $playIcon} = @state
+    {$shareBtn, $againBtn} = @state
 
     lastScore = Score.getLast()
     bestScore = Score.getBest()
@@ -39,9 +34,6 @@ module.exports = class GameOver
             text:
               z 'div',
                 {style: paddingRight: '24px'}
-                z $shareIcon,
-                  icon: 'share-variant'
-                  shouldRipple: false
                 'share score'
         z '.button',
           z $againBtn,
@@ -50,7 +42,4 @@ module.exports = class GameOver
             text:
               z 'div',
                 {style: paddingRight: '24px'}
-                z $shareIcon,
-                  icon: 'play'
-                  shouldRipple: false
                 'play again'

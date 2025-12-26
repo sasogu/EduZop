@@ -59,6 +59,19 @@ module.exports = Game = (function() {
     }
 
     colors = ['#F44336', '#9C27B0', '#2196F3', '#4CAF50', '#FF9800']
+    noteSvgs = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/><path d="M38 12 Q52 18 44 30" stroke="#fff" stroke-width="4" fill="none"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="none" stroke="#fff" stroke-width="4"/><rect x="34" y="12" width="4" height="30" fill="#fff"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/><path d="M38 12 Q52 18 44 26" stroke="#fff" stroke-width="4" fill="none"/><path d="M38 20 Q52 26 44 34" stroke="#fff" stroke-width="4" fill="none"/></svg>'
+    ]
+    noteImages = colors.reduce(function (acc, color, i) {
+      var img = new Image()
+      var svg = noteSvgs[i % noteSvgs.length]
+      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
+      acc[color] = img
+      return acc
+    }, {})
 
     dots = []
     for (var x = 0; x < 6; x++) {
@@ -219,6 +232,17 @@ module.exports = Game = (function() {
         }
         ctx.fillStyle = dot.color
         ctx.fillRect(Math.floor(dot.x - dotSize / 4), Math.floor(dot.y - dotSize / 4), Math.floor(dotSize / 2), Math.floor(dotSize / 2))
+        var noteImg = noteImages[dot.color]
+        if (noteImg && noteImg.complete) {
+          var size = dotSize * 0.5
+          ctx.drawImage(
+            noteImg,
+            Math.floor(dot.x - size / 2),
+            Math.floor(dot.y - size / 2),
+            Math.floor(size),
+            Math.floor(size)
+          )
+        }
       }
 
       if (selected.length && isSelecting) {

@@ -9,11 +9,12 @@ https://zop.zolmeister.com
 ```bash
 npm install
 npm run dev
-# http://localhost:3000/
+# http://localhost:3004/
 ```
 
-To start the production server:
+Build static site (GitHub Pages):
 
 ```bash
-npm start
+npm run build
+# outputs to ./docs
 ```

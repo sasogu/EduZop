@@ -1,21 +1,16 @@
 z = require 'zorium'
 Button = require 'zorium-paper/button'
-Icon = require 'zorium-paper/icon'
 
-styles = require './index.styl'
+require './index.styl'
 
 module.exports = class Footer
   constructor: ->
-    styles.use()
-
     @state = z.state
       $shareBtn: new Button()
-      $shareIcon: new Icon()
       $restartBtn: new Button()
-      $restartIcon: new Icon()
 
   render: ({onRestart}) =>
-    {$shareBtn, $restartBtn, $shareIcon, $restartIcon} = @state
+    {$shareBtn, $restartBtn} = @state
 
     z '.z-footer',
       z '.left',
@@ -23,9 +18,6 @@ module.exports = class Footer
           onclick: onRestart
           $content: z 'div',
             {style: paddingRight: '24px'}
-            z $shareIcon,
-              icon: 'replay'
-              shouldRipple: false
             'restart'
       z '.right',
         z $shareBtn,
@@ -36,6 +28,3 @@ module.exports = class Footer
           $content: z 'div',
             {style: paddingLeft: '24px'}
             'share'
-            z $shareIcon,
-              icon: 'share-variant'
-              shouldRipple: false

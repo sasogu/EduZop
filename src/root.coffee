@@ -9,9 +9,7 @@ HomePage = require './pages/home'
 GameOverPage = require './pages/game_over'
 ErrorReportService = require './services/error_report'
 
-style = require './root.styl'
-
-style.use()
+require './root.styl'
 
 ###########
 # LOGGING #
