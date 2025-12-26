@@ -13,7 +13,7 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'docs'),
       filename: 'js/bundle.js',
-      publicPath: './',
+      publicPath: mode === 'production' ? './' : '/',
       clean: true
     },
     resolve: {
@@ -72,8 +72,9 @@ module.exports = (env, argv) => {
     ],
     devtool: mode === 'production' ? false : 'source-map',
     devServer: {
-      static: {
-        directory: path.resolve(__dirname, 'docs')
+      static: false,
+      headers: {
+        'Cache-Control': 'no-store'
       },
       historyApiFallback: true,
       open: false,

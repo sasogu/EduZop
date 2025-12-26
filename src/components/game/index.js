@@ -2,6 +2,8 @@ var Game, styles, z;
 
 z = require('zorium');
 
+config = require('../../config')
+
 Score = require('../../models/score')
 Footer = require('../footer')
 
@@ -21,14 +23,52 @@ module.exports = Game = (function() {
     renderInterval: null
   })
 
-  function Game() {}
+  function normalizeMode(mode) {
+    if (!mode) return ''
+    return mode.toString().toLowerCase().trim()
+  }
+
+  function inferModeFromLocation() {
+    try {
+      var currentPath = (z.router && z.router.getCurrentPath && z.router.getCurrentPath()) || ''
+      var hash = (typeof window !== 'undefined' && window.location && window.location.hash) ? window.location.hash : ''
+      var combined = (currentPath + ' ' + hash).toLowerCase()
+
+      if (combined.indexOf('/zen') !== -1) return 'zen'
+      if (combined.indexOf('/play') !== -1) return 'classic'
+    } catch (e) {}
+    return null
+  }
+
+  function Game(options) {
+    options = options || {}
+    this.mode = normalizeMode(options.mode) || inferModeFromLocation() || 'classic'
+    this.timeInterval = null
+  }
 
   Game.prototype.onBeforeUnmount = function () {
-    clearInterval(state().timeInterval)
+    if (this.timeInterval) {
+      clearInterval(this.timeInterval)
+      this.timeInterval = null
+    }
   }
 
   Game.prototype.onMount = function ($$el) {
     var RATIO = window.devicePixelRatio || 1
+    var mode = normalizeMode(this.mode) || inferModeFromLocation() || 'classic'
+    this.mode = mode
+    var isZen = mode === 'zen'
+    var isTimed = !isZen
+
+    // Estado por instancia (evita que clásico/zen se pisen al navegar)
+    var score = 0
+    var time = isTimed ? 60 : null
+    var selected = []
+    var isSelecting = false
+    var mouseX = 0
+    var mouseY = 0
+    var squareColor = null
+    var lastPhysicsTime = 0
 
     var a = $$el.children[0]
     var b = document.body
@@ -40,23 +80,23 @@ module.exports = Game = (function() {
 
     var c = a.getContext('2d')
 
-    ctx = c
-    W = a.width
-    H = a.height
-    gridCount = 6
-    dotSize = Math.min(W, H) / 6.6
-    xs = W / 2 - dotSize * 3 + dotSize / 2
-    ys = H / 2 - dotSize * 3 + dotSize / 2
+    var ctx = c
+    var W = a.width
+    var H = a.height
+    var gridCount = 6
+    var dotSize = Math.min(W, H) / 6.6
+    var xs = W / 2 - dotSize * 3 + dotSize / 2
+    var ys = H / 2 - dotSize * 3 + dotSize / 2
 
     if (W > H) {
       dotSize *= 0.68
       xs = W / 2 - dotSize * 3 + dotSize / 2
       ys = H / 2 - dotSize * 3
     }
-    tileSize = dotSize * 0.72
-    tileRadius = tileSize * 0.24
-    tileGlowSize = tileSize * 1.08
-    noteSize = tileSize * 0.72
+    var tileSize = dotSize * 0.72
+    var tileRadius = tileSize * 0.24
+    var tileGlowSize = tileSize * 1.08
+    var noteSize = tileSize * 0.72
 
     choice = function(arr) {
       return arr[Math.floor(Math.random()*arr.length)]
@@ -81,25 +121,49 @@ module.exports = Game = (function() {
       ctx.globalAlpha = 1
     }
 
-    colors = ['#F44336', '#9C27B0', '#2196F3', '#4CAF50', '#FF9800']
-    noteSvgs = [
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/><path d="M38 12 Q52 18 44 30" stroke="#fff" stroke-width="4" fill="none"/></svg>',
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="none" stroke="#fff" stroke-width="4"/><rect x="34" y="12" width="4" height="30" fill="#fff"/></svg>',
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/></svg>',
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="#fff"/><rect x="34" y="12" width="4" height="30" fill="#fff"/><path d="M38 12 Q52 18 44 26" stroke="#fff" stroke-width="4" fill="none"/><path d="M38 20 Q52 26 44 34" stroke="#fff" stroke-width="4" fill="none"/></svg>'
-    ]
-    noteImages = colors.reduce(function (acc, color, i) {
+    // Paleta base para la lógica del juego.
+    // Si en algún momento modificas `colors` (p.ej. la vacías al llegar a cierto score),
+    // esto evita que el juego se rompa por arrays vacíos/undefined.
+    var baseColors = ['#F44336', '#9C27B0', '#2196F3', '#4CAF50', '#FF9800']
+    var colors = baseColors
+    makeNoteSvgs = function (noteColor) {
+      return [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="' + noteColor + '"/><rect x="34" y="12" width="4" height="30" fill="' + noteColor + '"/><path d="M38 12 Q52 18 44 30" stroke="' + noteColor + '" stroke-width="4" fill="none"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="none" stroke="' + noteColor + '" stroke-width="4"/><rect x="34" y="12" width="4" height="30" fill="' + noteColor + '"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="' + noteColor + '"/><rect x="34" y="12" width="4" height="30" fill="' + noteColor + '"/></svg>',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="26" cy="42" rx="10" ry="7" fill="' + noteColor + '"/><rect x="34" y="12" width="4" height="30" fill="' + noteColor + '"/><path d="M38 12 Q52 18 44 26" stroke="' + noteColor + '" stroke-width="4" fill="none"/><path d="M38 20 Q52 26 44 34" stroke="' + noteColor + '" stroke-width="4" fill="none"/></svg>'
+      ]
+    }
+    noteSvgsLight = makeNoteSvgs('#ffffff')
+    noteSvgsDark = makeNoteSvgs('#111827')
+    noteImagesLight = baseColors.reduce(function (acc, color, i) {
       var img = new Image()
-      var svg = noteSvgs[i % noteSvgs.length]
+      var svg = noteSvgsLight[i % noteSvgsLight.length]
+      img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
+      acc[color] = img
+      return acc
+    }, {})
+    noteImagesDark = baseColors.reduce(function (acc, color, i) {
+      var img = new Image()
+      var svg = noteSvgsDark[i % noteSvgsDark.length]
       img.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg)
       acc[color] = img
       return acc
     }, {})
 
-    dots = []
+    symbolIndexForDot = function (dot) {
+      // En modo "solo figuras" (Zen), el criterio de igualdad debe ser la figura.
+      // Actualmente la figura está determinada por el índice del color en baseColors.
+      // Como hay 5 colores y 4 figuras, algunas figuras se repiten con colores distintos.
+      var colorIndex = baseColors.indexOf(dot.color)
+      if (colorIndex < 0) colorIndex = 0
+      return colorIndex % noteSvgsLight.length
+    }
+
+    var dots = []
     for (var x = 0; x < gridCount; x++) {
       for (var y = 0; y < gridCount; y++) {
-        color = choice(colors)
+        color = choice(baseColors)
         dots.push({
           color: color,
           ty: ys + y * dotSize,
@@ -120,12 +184,12 @@ module.exports = Game = (function() {
       squareColor = null
 
       score = 0
-      time = 60
+      time = isTimed ? 60 : null
       lastPhysicsTime = 0
 
       for (var x = 0; x < gridCount; x++) {
         for (var y = 0; y < gridCount; y++) {
-          color = choice(colors)
+          color = choice(baseColors)
           dots[x + y * gridCount] = {
             color: color,
             ty: ys + y * dotSize,
@@ -141,19 +205,33 @@ module.exports = Game = (function() {
 
     window.gameRestart()
 
-    state.set({
-      timeInterval: setInterval(function () {
-        time -= 1
-        time = Math.max(time, 0)
-        if (time == 0) {
-          selected = []
-          isSelecting = false
-          squareColor = null
-          Score.save(score)
-          z.router.go('/game-over')
-        }
-      }, 1000)
-    })
+    isSymbolOnlyMode = function () {
+      return isZen || (isTimed && score >= 20)
+    }
+
+    if (isTimed) {
+      // Limpia intervalos anteriores (por si hubo navegación rápida)
+      if (this.timeInterval) {
+        clearInterval(this.timeInterval)
+        this.timeInterval = null
+      }
+      this.timeInterval = setInterval(function () {
+          time -= 1
+          time = Math.max(time, 0)
+          if (time == 0) {
+            selected = []
+            isSelecting = false
+            squareColor = null
+            Score.save(score)
+            z.router.go('/game-over')
+          }
+        }, 1000)
+    } else {
+      if (this.timeInterval) {
+        clearInterval(this.timeInterval)
+        this.timeInterval = null
+      }
+    }
 
     render = function() {
       var physicsScale = 1
@@ -170,7 +248,7 @@ module.exports = Game = (function() {
         lastPhysicsTime = Date.now()
       }
 
-      if (time === 0) {
+      if (isTimed && time === 0) {
         return
       }
       ctx.clearRect(0, 0, W, H)
@@ -178,28 +256,36 @@ module.exports = Game = (function() {
       ctx.fillStyle = '#f8fbff'
       ctx.fillRect(0, 0, W, H)
 
-      if (squareColor) {
+      var isSymbolOnly = isSymbolOnlyMode()
+      if (squareColor && !isSymbolOnly) {
         ctx.globalAlpha = 0.08
         ctx.fillStyle = squareColor
         ctx.fillRect(0, 0, W, H)
         ctx.globalAlpha = 1
+      } else if (squareColor) {
+        ctx.globalAlpha = 0.06
+        ctx.fillStyle = '#0f172a'
+        ctx.fillRect(0, 0, W, H)
+        ctx.globalAlpha = 1
       }
 
-      ctx.font = '600 ' + dotSize / 2 + 'px "Space Grotesk"'
-      function fillText(s, x, y) {
-        ctx.fillText(s, x|0, y|0)
-      }
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'
-      fillText(score, xs + dotSize * 2.5, ys - dotSize * 0.95)
-      fillText(time, xs + dotSize, ys - dotSize * 0.95)
-      fillText(Score.getBest(), xs + dotSize * 4, ys - dotSize * 0.95)
+      if (isTimed) {
+        ctx.font = '600 ' + dotSize / 2 + 'px "Space Grotesk"'
+        function fillText(s, x, y) {
+          ctx.fillText(s, x|0, y|0)
+        }
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'
+        fillText(score, xs + dotSize * 2.5, ys - dotSize * 0.95)
+        fillText(time, xs + dotSize, ys - dotSize * 0.95)
+        fillText(Score.getBest(), xs + dotSize * 4, ys - dotSize * 0.95)
 
-      ctx.textAlign = 'center'
-      ctx.font = '500 ' + dotSize / 5 + 'px "Space Grotesk"'
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.5)'
-      fillText('SCORE', xs + dotSize * 2.5, ys - dotSize + dotSize / 3.2)
-      fillText('TIME', xs + dotSize, ys - dotSize + dotSize / 3.2)
-      fillText('BEST', xs + dotSize * 4, ys - dotSize + dotSize / 3.2)
+        ctx.textAlign = 'center'
+        ctx.font = '500 ' + dotSize / 5 + 'px "Space Grotesk"'
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.5)'
+        fillText('SCORE', xs + dotSize * 2.5, ys - dotSize + dotSize / 3.2)
+        fillText('TIME', xs + dotSize, ys - dotSize + dotSize / 3.2)
+        fillText('BEST', xs + dotSize * 4, ys - dotSize + dotSize / 3.2)
+      }
 
 
       for (var i = dots.length - 1; i >= 0 ; i--) {
@@ -255,23 +341,24 @@ module.exports = Game = (function() {
           var glowX = Math.floor(dot.x - tileGlowSize / 2)
           var glowY = Math.floor(dot.y - tileGlowSize / 2)
           ctx.shadowColor = 'rgba(0, 0, 0, 0)'
-          drawTile(glowX, glowY, tileGlowSize, dot.color, 0.25)
+          var glowColor = isSymbolOnly ? '#0f172a' : dot.color
+          drawTile(glowX, glowY, tileGlowSize, glowColor, 0.2)
         }
         var tileX = Math.floor(dot.x - tileSize / 2)
         var tileY = Math.floor(dot.y - tileSize / 2)
         ctx.shadowColor = 'rgba(15, 23, 42, 0.25)'
         ctx.shadowBlur = tileSize * 0.18
         ctx.shadowOffsetY = tileSize * 0.08
-        ctx.fillStyle = dot.color
+        ctx.fillStyle = isSymbolOnly ? '#ffffff' : dot.color
         drawRoundedRect(tileX, tileY, tileSize, tileSize, tileRadius)
         ctx.fill()
         ctx.shadowColor = 'rgba(0, 0, 0, 0)'
         ctx.shadowBlur = 0
         ctx.shadowOffsetY = 0
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+        ctx.strokeStyle = isSymbolOnly ? 'rgba(15, 23, 42, 0.16)' : 'rgba(255, 255, 255, 0.35)'
         ctx.lineWidth = 1
         ctx.stroke()
-        var noteImg = noteImages[dot.color]
+        var noteImg = (isSymbolOnly ? noteImagesDark : noteImagesLight)[dot.color]
         if (noteImg && noteImg.complete) {
           var size = noteSize
           ctx.drawImage(
@@ -285,7 +372,7 @@ module.exports = Game = (function() {
       }
 
       if (selected.length && isSelecting) {
-        ctx.strokeStyle = selected[0].color
+        ctx.strokeStyle = isSymbolOnly ? '#0f172a' : selected[0].color
         ctx.lineJoin = 'round'
         ctx.lineWidth = dotSize / 7
         ctx.beginPath()
@@ -326,7 +413,7 @@ module.exports = Game = (function() {
     a.addEventListener('touchstart', touchstart)
     function touchstart(e) {
       e.preventDefault()
-      if (time == 0) return
+      if (isTimed && time == 0) return
       isSelecting = true
 
       var x, y
@@ -354,7 +441,7 @@ module.exports = Game = (function() {
         return selected = []
       }
 
-      if (squareColor) {
+      if (squareColor && !isSymbolOnlyMode()) {
         for (var i = 0; i < dots.length; i++) {
           var dot = dots[i]
           if (dot.color == squareColor) {
@@ -372,10 +459,12 @@ module.exports = Game = (function() {
       for (var i = 0; i < selected.length; i++) {
         var dot = selected[i]
         do {
-          var color = choice(colors)
+          var color = choice(baseColors)
         } while (color == squareColor)
         if (dot.r >= 0) {
-          score += 1
+          if (isTimed) {
+            score += 1
+          }
           dot.r -= highestRow + 1
           dot.y = ys + dot.r * dotSize
           dot.ty = ys + dot.r * dotSize
@@ -403,11 +492,21 @@ module.exports = Game = (function() {
         isSelecting = true
       }
 
-      if (isSelecting && time != 0) {
+      if (isSelecting && (!isTimed || time != 0)) {
         for (var i = 0; i < dots.length; i++) {
           var dot = dots[i]
-          var isntSame = selected.length && selected[0].color != dot.color
-          if (isntSame || selected.length && !isNeighbor(dot, selected[0]))
+          var isSymbolOnly = isSymbolOnlyMode()
+          var isntSame = false
+
+          if (selected.length) {
+            if (isSymbolOnly) {
+              isntSame = symbolIndexForDot(selected[0]) != symbolIndexForDot(dot)
+            } else {
+              isntSame = selected[0].color != dot.color
+            }
+          }
+
+          if (isntSame || (selected.length && !isNeighbor(dot, selected[0])))
             continue
           if (collideDot(mouseX, mouseY, dot)) {
             if (!contains(selected, dot)) {
@@ -416,7 +515,9 @@ module.exports = Game = (function() {
               selected.shift()
             } else {
               selected.unshift(dot)
-              squareColor = dot.color
+              if (!isSymbolOnlyMode()) {
+                squareColor = dot.color
+              }
             }
           }
         }
@@ -450,6 +551,9 @@ module.exports = Game = (function() {
       z($footer, {
         onRestart: function () {
           self.restart()
+        },
+        onBack: function () {
+          z.router.go('/')
         }
       })
     )

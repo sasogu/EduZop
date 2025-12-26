@@ -5,8 +5,6 @@
 	 * ECMAScript compliant, uniform cross-browser split method
 	 */
 
-/*!/dio*/
-
 /**
  * @license
  * Lodash <https://lodash.com/>

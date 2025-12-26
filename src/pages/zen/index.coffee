@@ -3,9 +3,9 @@ _ = require 'lodash'
 
 Game = require '../../components/game'
 
-module.exports = class HomePage
+module.exports = class ZenPage
   constructor: ->
-    @$game = new Game(mode: 'classic')
+    @$game = new Game(mode: 'zen')
 
   render: =>
     z 'div',

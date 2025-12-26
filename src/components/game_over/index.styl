@@ -60,6 +60,32 @@ json('zorium-paper/colors.json')
     background: rgba(255, 255, 255, 0.95)
     color: #0f172a
     box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14)
+    border: 1px solid rgba(15, 23, 42, 0.12)
+    cursor: pointer
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0)
+    user-select: none
+    transition: background 120ms ease, transform 120ms ease, box-shadow 120ms ease
+
+  .zp-button:hover
+    background: rgba(255, 255, 255, 1)
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16)
+
+  .zp-button:active
+    transform: translateY(1px)
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14)
+
+  .zp-button:focus
+    outline: none
+
+  .zp-button:focus-visible
+    outline: 2px solid rgba(15, 23, 42, 0.35)
+    outline-offset: 2px
 
   .zp-button .zp-button__content
     letter-spacing: 0.02em
+    padding: 10px 18px
+    font-size: 14px
+    font-weight: 600
+    text-transform: uppercase
+    line-height: 1
+    font-family: inherit

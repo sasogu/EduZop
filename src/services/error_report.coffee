@@ -2,6 +2,7 @@ config = require '../config'
 
 class ErrorReportService
   report: ->
+    return unless config.API_URL
     # Remove the circular dependency within error objects
     args = _.map arguments, (arg) ->
 

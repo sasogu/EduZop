@@ -6,6 +6,8 @@ log = require 'clay-loglevel'
 
 config = require './config'
 HomePage = require './pages/home'
+ModeSelectPage = require './pages/mode_select'
+ZenPage = require './pages/zen'
 GameOverPage = require './pages/game_over'
 ErrorReportService = require './services/error_report'
 
@@ -31,8 +33,11 @@ else
 
 root = document.getElementById('app')
 z.router.setRoot root
-z.router.add '/', HomePage
+z.router.add '/', ModeSelectPage
+z.router.add '/play', HomePage
+z.router.add '/zen', ZenPage
 z.router.add '/game-over', GameOverPage
-z.router.go '/'
 
-log.info 'App Ready'
+# Dispara el render inicial sin romper deep-links (/#/zen).
+initialPath = z.router.getCurrentPath()
+z.router.go(initialPath or '/')
