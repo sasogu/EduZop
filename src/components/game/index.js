@@ -127,6 +127,7 @@ module.exports = Game = (function() {
     var isTimed = !isZen
 
     var gameInstance = this
+    var hasGameOver = false
 
     // Estado por instancia (evita que clásico/relax se pisen al navegar)
     var score = 0
@@ -289,11 +290,16 @@ module.exports = Game = (function() {
       this.timeInterval = setInterval(function () {
           time -= 1
           time = Math.max(time, 0)
-          if (time == 0) {
+          if (time == 0 && !hasGameOver) {
+            hasGameOver = true
             selected = []
             isSelecting = false
             squareColor = null
             Score.save(score)
+            if (gameInstance.timeInterval) {
+              clearInterval(gameInstance.timeInterval)
+              gameInstance.timeInterval = null
+            }
             z.router.go('/game-over')
           }
         }, 1000)
@@ -636,9 +642,6 @@ module.exports = Game = (function() {
         }
       }),
       z($footer, {
-        onRestart: function () {
-          self.restart()
-        },
         onBack: function () {
           z.router.go('/')
         }
