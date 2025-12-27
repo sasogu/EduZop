@@ -1,5 +1,7 @@
 z = require 'zorium'
 
+config = require '../../config'
+
 require './index.styl'
 
 module.exports = class ModeSelectPage
@@ -9,8 +11,11 @@ module.exports = class ModeSelectPage
   render: =>
     goAndReload = (path) ->
       z.router.go path
-      # Espera un tick para asegurar que la URL/route se actualiza antes del reload
-      setTimeout((-> window.location.reload()), 20)
+      # En desarrollo forzamos recarga para inicializar el canvas limpio.
+      # En producción (GitHub Pages) NO recargamos porque /play y /relax no existen como archivos
+      # y un reload puede acabar en 404.
+      if config.ENV isnt config.ENVS.PROD
+        setTimeout((-> window.location.reload()), 20)
 
     classicBtn = z 'button', {
       onclick: -> goAndReload '/play'

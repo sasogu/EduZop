@@ -41,7 +41,7 @@ npm run dev
 # http://localhost:3004/
 ```
 
-Nota: al entrar en un modo desde el selector (`/play` o `/relax`) la app fuerza una recarga automática para garantizar que el juego se inicialice limpio.
+Nota: en desarrollo, al entrar en un modo desde el selector (`/play` o `/relax`) la app fuerza una recarga automática para garantizar que el juego se inicialice limpio. En producción (GitHub Pages) no se recarga para evitar 404 en rutas SPA.
 
 ### Build estático (GitHub Pages)
 
