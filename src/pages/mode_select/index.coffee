@@ -11,11 +11,9 @@ module.exports = class ModeSelectPage
   render: =>
     goAndReload = (path) ->
       z.router.go path
-      # En desarrollo forzamos recarga para inicializar el canvas limpio.
-      # En producción (GitHub Pages) NO recargamos porque /play y /relax no existen como archivos
-      # y un reload puede acabar en 404.
-      if config.ENV isnt config.ENVS.PROD
-        setTimeout((-> window.location.reload()), 20)
+      # Forzamos recarga para reinicializar el juego (canvas/estado) al entrar en un modo.
+      # El deploy usa hash routing y 404.html redirige rutas SPA, así que el reload no rompe Pages.
+      setTimeout((-> window.location.reload()), 20)
 
     classicBtn = z 'button', {
       onclick: -> goAndReload '/play'
