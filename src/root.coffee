@@ -39,5 +39,9 @@ z.router.add '/relax', ZenPage
 z.router.add '/game-over', GameOverPage
 
 # Dispara el render inicial sin romper deep-links (/#/relax).
-initialPath = z.router.getCurrentPath()
+# En GitHub Pages (proyectos) `window.location.pathname` incluye el nombre del repo
+# (p.ej. /EduZop/). El router de Zorium en modo `hash` puede tomar ese pathname
+# como ruta inicial y no coincide con nuestras rutas ('/', '/play', ...).
+# Para evitar un render en blanco, priorizamos el hash (/#/relax) y caemos a '/'.
+initialPath = (window.location.hash or '').replace(/^#/, '')
 z.router.go(initialPath or '/')
