@@ -1,20 +1,27 @@
 # EduZop
 
-Juego de unir colores con iconografia musical, pensado para sesiones rapidas.
+Juego de unir colores con iconografía musical, pensado para sesiones rápidas.
 
 ### Features
 
 - Tablero 6x6 con fichas grandes y animaciones suaves
 - Notas musicales por color (SVG embebido en canvas)
 - Puntaje, tiempo y mejor marca guardada
-- Pantalla inicial con modo Clasico y Zen
+- Pantalla inicial con modo Clasico y Relax
 - UI moderna y limpia, lista para GitHub Pages
 
-### Instalacion
+### Rutas
+
+- `/` selector de modo
+- `/play` modo Clásico (con tiempo y puntuación)
+- `/relax` modo Relax (sin tiempo)
+- `/game-over` pantalla de fin de partida (modo Clásico)
+
+### Instalación
 
 Requisitos: Node.js 18+ y npm.
 
-Instalacion reproducible (recomendado): usa `package-lock.json`.
+Instalación reproducible (recomendado): usa `package-lock.json`.
 
 ```bash
 rm -rf node_modules
@@ -25,7 +32,7 @@ npm ci
 npm install
 ```
 
-Nota: si borras `package-lock.json`, `npm ci` no funcionara y pierdes reproducibilidad.
+Nota: si borras `package-lock.json`, `npm ci` no funcionará y pierdes reproducibilidad.
 
 ### Desarrollo local
 
@@ -34,14 +41,16 @@ npm run dev
 # http://localhost:3004/
 ```
 
-### Build estatico (GitHub Pages)
+Nota: al entrar en un modo desde el selector (`/play` o `/relax`) la app fuerza una recarga automática para garantizar que el juego se inicialice limpio.
+
+### Build estático (GitHub Pages)
 
 ```bash
 npm run build
 # outputs to ./docs
 ```
 
-### Verificacion rapida
+### Verificación rápida
 
 ```bash
 npm ci

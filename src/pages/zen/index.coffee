@@ -6,7 +6,7 @@ Game = require '../../components/game'
 module.exports = class ZenPage
   constructor: ->
     @state = z.state
-      $game: new Game(mode: 'zen')
+      $game: new Game(mode: 'relax')
 
   render: =>
     {$game} = @state()

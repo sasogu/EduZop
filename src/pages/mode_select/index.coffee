@@ -19,7 +19,7 @@ module.exports = class ModeSelectPage
     }, z 'div', {className: 'zp-button__content'}, 'Jugar'
 
     zenBtn = z 'button', {
-      onclick: -> goAndReload '/zen'
+      onclick: -> goAndReload '/relax'
       type: 'button'
       className: 'zp-button'
     }, z 'div', {className: 'zp-button__content'}, 'Jugar'
@@ -34,7 +34,7 @@ module.exports = class ModeSelectPage
           classicBtn
         ]
         z '.card', [
-          z '.card-title', 'Zen'
+          z '.card-title', 'Relax'
           z '.card-desc', 'Sin tiempo ni puntuación. Solo conecta figuras.'
           zenBtn
         ]

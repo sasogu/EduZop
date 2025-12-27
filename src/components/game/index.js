@@ -44,7 +44,7 @@ module.exports = Game = (function() {
       var pathname = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : ''
       var combined = (currentPath + ' ' + hash + ' ' + pathname).toLowerCase()
 
-      if (combined.indexOf('/zen') !== -1) return 'zen'
+      if (combined.indexOf('/relax') !== -1) return 'relax'
       if (combined.indexOf('/play') !== -1) return 'classic'
     } catch (e) {}
     return null
@@ -123,12 +123,12 @@ module.exports = Game = (function() {
     var currentMode = normalizeMode(this.mode)
     var mode = inferredMode || currentMode || 'classic'
     this.mode = mode
-    var isZen = mode === 'zen'
+    var isZen = mode === 'relax'
     var isTimed = !isZen
 
     var gameInstance = this
 
-    // Estado por instancia (evita que clásico/zen se pisen al navegar)
+    // Estado por instancia (evita que clásico/relax se pisen al navegar)
     var score = 0
     var time = isTimed ? 60 : null
     var selected = []
@@ -223,7 +223,7 @@ module.exports = Game = (function() {
     }, {})
 
     symbolIndexForDot = function (dot) {
-      // En modo "solo figuras" (Zen), el criterio de igualdad debe ser la figura.
+      // En modo "solo figuras" (Relax), el criterio de igualdad debe ser la figura.
       // Actualmente la figura está determinada por el índice del color en baseColors.
       // Como hay 5 colores y 4 figuras, algunas figuras se repiten con colores distintos.
       var colorIndex = baseColors.indexOf(dot.color)

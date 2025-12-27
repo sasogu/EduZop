@@ -35,9 +35,9 @@ root = document.getElementById('app')
 z.router.setRoot root
 z.router.add '/', ModeSelectPage
 z.router.add '/play', HomePage
-z.router.add '/zen', ZenPage
+z.router.add '/relax', ZenPage
 z.router.add '/game-over', GameOverPage
 
-# Dispara el render inicial sin romper deep-links (/#/zen).
+# Dispara el render inicial sin romper deep-links (/#/relax).
 initialPath = z.router.getCurrentPath()
 z.router.go(initialPath or '/')
