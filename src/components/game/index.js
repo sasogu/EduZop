@@ -12,8 +12,17 @@ window.requestAnimFrame = (function(){
           window.webkitRequestAnimationFrame ||
           window.mozRequestAnimationFrame    ||
           function( callback ){
-            window.setTimeout(callback, 1000 / 60);
+            return window.setTimeout(callback, 1000 / 60);
           };
+})();
+
+window.cancelAnimFrame = (function(){
+  return  window.cancelAnimationFrame       ||
+          window.webkitCancelAnimationFrame ||
+          window.mozCancelAnimationFrame    ||
+          function(id) {
+            clearTimeout(id)
+          }
 })();
 
 module.exports = Game = (function() {
@@ -32,7 +41,8 @@ module.exports = Game = (function() {
     try {
       var currentPath = (z.router && z.router.getCurrentPath && z.router.getCurrentPath()) || ''
       var hash = (typeof window !== 'undefined' && window.location && window.location.hash) ? window.location.hash : ''
-      var combined = (currentPath + ' ' + hash).toLowerCase()
+      var pathname = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : ''
+      var combined = (currentPath + ' ' + hash + ' ' + pathname).toLowerCase()
 
       if (combined.indexOf('/zen') !== -1) return 'zen'
       if (combined.indexOf('/play') !== -1) return 'classic'
@@ -44,21 +54,79 @@ module.exports = Game = (function() {
     options = options || {}
     this.mode = normalizeMode(options.mode) || inferModeFromLocation() || 'classic'
     this.timeInterval = null
+    this._restart = null
+    this._rafId = null
+    this._mounted = false
+    this._destroyed = false
+    this._canvasEl = null
+    this._touchstart = null
+    this._touchend = null
+    this._onmove = null
+    this._prevOnResize = null
+    this._hasPrevOnResize = false
   }
 
   Game.prototype.onBeforeUnmount = function () {
+    this._destroyed = true
+    this._mounted = false
+
     if (this.timeInterval) {
       clearInterval(this.timeInterval)
       this.timeInterval = null
     }
+
+    if (this._rafId) {
+      try { window.cancelAnimFrame(this._rafId) } catch (e) {}
+      this._rafId = null
+    }
+
+    if (this._canvasEl) {
+      try {
+        if (this._touchstart) {
+          this._canvasEl.removeEventListener('mousedown', this._touchstart)
+          this._canvasEl.removeEventListener('touchstart', this._touchstart)
+        }
+        if (this._touchend) {
+          this._canvasEl.removeEventListener('mouseup', this._touchend)
+          this._canvasEl.removeEventListener('touchend', this._touchend)
+        }
+        if (this._onmove) {
+          this._canvasEl.removeEventListener('mousemove', this._onmove)
+          this._canvasEl.removeEventListener('touchmove', this._onmove)
+        }
+      } catch (e) {}
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        if (this._hasPrevOnResize) {
+          window.onresize = this._prevOnResize
+          this._prevOnResize = null
+          this._hasPrevOnResize = false
+        }
+      } catch (e) {}
+    }
+
+    if (config && config.ENV !== config.ENVS.PROD && typeof console !== 'undefined' && console.debug) {
+      console.debug('[Game] onBeforeUnmount: cleaned up')
+    }
   }
 
   Game.prototype.onMount = function ($$el) {
+    this._destroyed = false
+    this._mounted = true
+
     var RATIO = window.devicePixelRatio || 1
-    var mode = normalizeMode(this.mode) || inferModeFromLocation() || 'classic'
+    // Importante: al navegar, el reconciliador puede reutilizar la misma instancia
+    // del componente. Preferimos la ruta actual si podemos inferirla.
+    var inferredMode = inferModeFromLocation()
+    var currentMode = normalizeMode(this.mode)
+    var mode = inferredMode || currentMode || 'classic'
     this.mode = mode
     var isZen = mode === 'zen'
     var isTimed = !isZen
+
+    var gameInstance = this
 
     // Estado por instancia (evita que clásico/zen se pisen al navegar)
     var score = 0
@@ -71,9 +139,12 @@ module.exports = Game = (function() {
     var lastPhysicsTime = 0
 
     var a = $$el.children[0]
+    this._canvasEl = a
     var b = document.body
     a.width = window.innerWidth * RATIO
     a.height = window.innerHeight * RATIO
+    this._hasPrevOnResize = true
+    this._prevOnResize = window.onresize
     window.onresize = function () {
       window.location.reload()
     }
@@ -175,7 +246,7 @@ module.exports = Game = (function() {
       }
     }
 
-    window.gameRestart = function () {
+    gameInstance._restart = function () {
       isSelecting = false
       selected = []
       isSelecting = false
@@ -203,7 +274,7 @@ module.exports = Game = (function() {
       }
     }
 
-    window.gameRestart()
+    gameInstance._restart()
 
     isSymbolOnlyMode = function () {
       return isZen || (isTimed && score >= 20)
@@ -234,6 +305,9 @@ module.exports = Game = (function() {
     }
 
     render = function() {
+      if (gameInstance._destroyed) {
+        return
+      }
       var physicsScale = 1
       var delta = 1
       if (lastPhysicsTime) {
@@ -384,7 +458,7 @@ module.exports = Game = (function() {
         ctx.stroke()
       }
 
-      window.requestAnimFrame(render)
+      gameInstance._rafId = window.requestAnimFrame(render)
     }
 
     isBelow = function (a, b) {
@@ -409,8 +483,6 @@ module.exports = Game = (function() {
              a.c - 1 == b.c && a.r == b.r
     }
 
-    a.addEventListener('mousedown', touchstart)
-    a.addEventListener('touchstart', touchstart)
     function touchstart(e) {
       e.preventDefault()
       if (isTimed && time == 0) return
@@ -432,8 +504,10 @@ module.exports = Game = (function() {
       })
     }
 
-    a.addEventListener('mouseup', touchend)
-    a.addEventListener('touchend', touchend)
+    this._touchstart = touchstart
+    a.addEventListener('mousedown', touchstart)
+    a.addEventListener('touchstart', touchstart)
+
     function touchend(e) {
       e.preventDefault()
       isSelecting = false
@@ -476,8 +550,10 @@ module.exports = Game = (function() {
       selected = []
     }
 
-    a.addEventListener('mousemove', onmove)
-    a.addEventListener('touchmove', onmove)
+    this._touchend = touchend
+    a.addEventListener('mouseup', touchend)
+    a.addEventListener('touchend', touchend)
+
     function onmove (e) {
       if (e.preventDefault)
         e.preventDefault()
@@ -524,12 +600,23 @@ module.exports = Game = (function() {
       }
     }
 
+    this._onmove = onmove
+    a.addEventListener('mousemove', onmove)
+    a.addEventListener('touchmove', onmove)
+
+    if (config && config.ENV !== config.ENVS.PROD && typeof console !== 'undefined' && console.debug) {
+      var cp = (z.router && z.router.getCurrentPath && z.router.getCurrentPath()) || ''
+      var h = (typeof window !== 'undefined' && window.location && window.location.hash) ? window.location.hash : ''
+      var pn = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : ''
+      console.debug('[Game] onMount: mode=' + mode + ' inferred=' + (inferredMode || '') + ' current=' + (currentMode || '') + ' path=' + cp + ' hash=' + h + ' pathname=' + pn)
+    }
+
     render()
   }
 
   Game.prototype.restart = function () {
-    if (window.gameRestart)
-      window.gameRestart()
+    if (this._restart)
+      this._restart()
   }
 
   Game.prototype.render = function() {

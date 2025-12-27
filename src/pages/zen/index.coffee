@@ -5,8 +5,10 @@ Game = require '../../components/game'
 
 module.exports = class ZenPage
   constructor: ->
-    @$game = new Game(mode: 'zen')
+    @state = z.state
+      $game: new Game(mode: 'zen')
 
   render: =>
+    {$game} = @state()
     z 'div',
-      z @$game
+      z $game
